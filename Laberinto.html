@@ -1,3 +1,5 @@
+//ESTOY TENIENDO PROBLEMAS CON EL AUDIO,
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -192,18 +194,7 @@
             return Math.floor(Math.random() * (max + 1));
         }
 
-        function pausarJuego() {
-            pause = true;
-            // Pausar la música
-            musica.pause();
-        }
-
-        function reanudarJuego() {
-            pause = false;
-            // Reanudar la música si estaba reproduciéndose antes de la pausa
-            if (!musica.paused) {
-                musica.play();
-            }
+       
         }
 
         update();
