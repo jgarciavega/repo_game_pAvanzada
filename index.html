@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>LABERINTO GAME</title>
+    <style>
+        body {
+            background-color: rgb(243, 229, 233);
+            height:100vh ;
+            margin: 0; 
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .canvas-container{
+            display: flex;
+        }
+
+        #canvas {
+            background-color: rgb(129, 158, 35);
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+        }
+       #canvas2 {
+            background-color: rgb(212, 175, 55);
+            width: 240;
+            height: 600px; 
+            position: left;
+            display: flex;
+            margin-left: 3px;
+            flex-direction: column;
+            align-items: center;
+            padding: 10px;
+
+        }
+        #bad{
+            font: 21px Arial, sans-serif;
+            color: #D4AF37;
+            text-align:right;
+            position:fixed; 
+            top: 65px; 
+            left: 790px; 
+
+        }
+
+    </style>
+</head>
+<body>
+    <div class="canvas-container">
+        <canvas width="600" height="600" id="myCanvas"></canvas>
+        <canvas width="140" height="300" id="canvas2"></canvas>
+    </div>
+    <div id="bad">BAD RABIT </div>
+
+    <script>
+        const canvas = document.getElementById('myCanvas');
+        const ctx = canvas.getContext('2d');
+        const imagenArmada = document.getElementById("imagenArma");
+
+        const Canvas2 = document.getElementById('Canvas2');
+        const ctx2 = canvas2.getContext('2d');
+
+        const fondo = new Image();
+        var dir = 0, speed = 2;
+        let score = 0;
+        let nivel = 1;
+        let vidas = 3;
+        let walls = [];
+        let pause = false;
+        
+        let imagen = new Image();
+        let conejo = new Image();
+        let musica = new Audio();
+
+        let armaFondo = new Image();
+        armaFondo.src = "arma.jpg";
+    
+        const audio = new Audio("musicaFondo.mp3");
+        imagen.src = "soldado.png";
+        conejo.src = "conejo.png";
+        musica.src = "marioCoin.mp3";
+        
+        class Cuadrado {
+            constructor(x, y, w, h, c) {
+                this.x = x;
+                this.y = y;
+                this.w = w;
+                this.h = h;
+                this.c = c;
+            }
+
+            paint(ctx) {
+                ctx.fillStyle = this.c;
+                ctx.fillRect(this.x, this.y, this.w, this.h);
+            }
+
+            pintar(ctx) {
+                ctx.beginPath();
+                ctx.fillStyle = this.c;
+                ctx.arc(this.x, this.y, 20, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.closePath();
+                
+            }
+
+            seTocan(otro) {
+                if (this.x < otro.x + otro.w &&
+                    this.x + this.w > otro.x &&
+                    this.y < otro.y + otro.h &&
+                    this.y + this.h > otro.y) {
+                    return true;
+                }
+                return false;
+            }
+        }
+
+        const player = new Cuadrado(225, 225, 50, 50);
+        const target = new Cuadrado(randomInteger(500), randomInteger(500), 40, 40);
+        
+        walls.push(new Cuadrado(0, 0, 595, 5, "black")); // Línea superior
+        walls.push(new Cuadrado(0, 590, 600, 10, "black")); // Línea inferior
+
+        walls.push(new Cuadrado(0, 0, 5, 590, "black")); // Pared izquierda
+        walls.push(new Cuadrado(590, 5, 5, 590, "black")); // Pared derecha
+
+        walls.push(new Cuadrado(60, 60, 20, 210, "violet")); // Pared vertical izquierda
+        walls.push(new Cuadrado(200, 60, 20, 210, "violet")); // Pared vertical derecha
+        walls.push(new Cuadrado(60, 260, 160, 15, "violet"));
+
+        walls.push(new Cuadrado(345, 60, 15, 200, "blue")); // Pared vertical izquierda
+        walls.push(new Cuadrado(480, 60, 20, 200, "pink")); // Pared vertical derecha
+        walls.push(new Cuadrado(345, 240, 160, 20, "pink")); // Pared horizontal superior
+        
+        walls.push(new Cuadrado(180, 390, 15, 140, "brown")); // Pared vertical derecha
+        walls.push(new Cuadrado(60, 390, 130, 10, "brown"));
+        walls.push(new Cuadrado(60, 400, 15, 120, "brown"));
+
+        walls.push(new Cuadrado(500, 380, 15, 150, "grey")); 
+        walls.push(new Cuadrado(345, 380, 160, 15, "yellow")); 
+        walls.push(new Cuadrado(350,380,15,150,"grey"));
+        walls.push(new Cuadrado(280,330,10,190,"gold"));
+        walls.push(new Cuadrado(60,330,120,20,"brown"));
+
+
+        let tiempo = 0;
+
+        const intervaloTiempo = setInterval(() => {
+            if (!pause) {
+                tiempo++;
+                actualizarTiempo();
+            }
+        }, 1000);
+        
+        function actualizarTiempo() {
+            // Borra el contenido de canvas2
+            ctx2.clearRect(0, 0, canvas2.width, canvas2.height);
+            
+            ctx2.beginPath();
+            ctx2.fillStyle = "beige";
+            ctx2.fillRect(0, 0, 600, 600);
+            ctx2.font = "25px Righteous";
+            ctx2.fillStyle = "blue";
+            ctx2.fillText("Score: " + score, 19, 40);
+
+            // Dibuja el texto en canvas2
+            ctx2.beginPath();
+            ctx2.font = "bold 20px verdana, sans-serif";
+            ctx2.textAlign = "start";
+            ctx2.fillText("Nivel: " + nivel, 20, 100);
+            ctx2.beginPath();
+
+            ctx2.font = "bold 20px verdana, sans-serif";
+            ctx2.textAlign = "start";
+            ctx2.fillText("Vidas: " + vidas, 20, 150); // Mostrar las vidas
+            ctx2.beginPath();
+
+            ctx2.fillStyle = "red";
+            ctx2.font = "30px Arial";
+            const hearts = "♥ ♥ ♥"; // Puedes ajustar el número de corazones
+            ctx2.fillText(hearts, 10, 200);
+            ctx2.beginPath();
+
+            ctx2.fillStyle = "black";
+            ctx2.font = "10px Arial";
+            ctx2.fillText("Tiempo: " + tiempo + " segundos", 5, 280);
+        }
+        
+   
+        window.requestAnimationFrame = (function () {
+            return window.requestAnimationFrame ||
+                window.webkitRequestAnimationFrame ||
+                window.mozRequestAnimationFrame ||
+                function (callback) {
+                    window.setTimeout(callback, 17);
+                };
+        }());
+
+        document.addEventListener("keydown", (e) => {
+            if (!pause) {
+                switch (e.keyCode) {
+                    case 38:
+                        dir = 1;
+                        break;
+                    case 40:
+                        dir = 2;
+                        break;
+                    case 39:
+                        dir = 3;
+                        break;
+                    case 37:
+                        dir = 4;
+                        break;
+                }
+            }
+
+            switch (e.keyCode) {
+                case 32:
+                    pause = !pause;
+                    break;
+                    case 78: // Tecla 'N' para aumentar el nivel
+                    nivel++;
+                    actualizarNivel();
+                    break;
+            }
+        });
+
+        function update() {
+            if (!pause) {
+                if (dir == 1) {
+                    player.y -= speed;
+                    if (player.y + 50 < 0) {
+                        player.y = 600;
+                    }
+                }
+                if (dir == 2) {
+                    player.y += speed;
+                    if (player.y + 50 > 600) {
+                        player.y = -50;
+                    }
+                }
+                if (dir == 3) {
+                    player.x += speed;
+                    if (player.x + 50 > 600) {
+                        player.x = -50;
+                    }
+                }
+                if (dir == 4) {
+                    player.x -= speed;
+                    if (player.x + 50 < 0) {
+                        player.x = 600;
+                    }
+                }
+
+                if (player.seTocan(target)) {
+                    target.x = randomInteger(500);
+                    target.y = randomInteger(500);
+                    score += 10;
+                    musica.play();
+                }
+
+                for (var i = walls.length - 1; i >= 0; i--) {
+                    if (player.seTocan(walls[i])) {
+                        if (dir == 1) {
+                            player.y += speed;
+                        }
+                        if (dir == 2) {
+                            player.y -= speed;
+                        }
+                        if (dir == 3) {
+                            player.x -= speed;
+                        }
+                        if (dir == 4) {
+                            player.x += speed;
+                        }
+                        dir = 0;
+                    }
+
+                    if (target.seTocan(walls[i])) {
+                        target.x = randomInteger(600);
+                        target.y = randomInteger(600);
+                    }
+                    audio.play();
+                    
+
+                }
+                if (soldadoTocaConejo()) {
+                    vidas--; // Restar una vida
+                    if (vidas === 0) {
+                        gameOver();
+                    } else {
+                        resetPosition();
+                    }
+                }
+            }
+
+            paint();
+            
+            window.requestAnimationFrame(update);
+
+            function soldadoTocaConejo() {
+                if (
+                    player.x < target.x + target.w &&
+                    player.x + player.w > target.x &&
+                    player.y < target.y + target.h &&
+                    player.y + player.h > target.y
+                ) {
+                    return true;
+                }
+                return false;
+            }
+  
+        } 
+
+        function paint() {
+            
+
+            ctx.drawImage(armaFondo,0,0,canvas.width,canvas.height);
+            ctx.drawImage(imagen, player.x, player.y, 50, 50);
+            ctx.drawImage(conejo, target.x, target.y, 50, 50);
+        
+            for (var i = walls.length - 1; i >= 0; i--) {
+                walls[i].paint(ctx);
+            }
+            
+            if (pause) {
+                ctx.fillStyle = "rgba(88, 219, 197, 0.7)";
+                ctx.fillRect(0, 0, 600, 600);
+                ctx.font = "45px Rubik Iso";
+                ctx.fillStyle = "black";
+                ctx.fillText("A G U A N T A", 195, 225);
+                audio.pause();
+            }
+
+
+        }
+
+        update();
+
+        function resetPosition() {
+            player.x = 225;
+            player.y = 225;
+            target.x = randomInteger(690);
+            target.y = randomInteger(750);
+        }
+        function randomInteger(max) {
+            return Math.floor(Math.random() * (max + 1));
+        }
+
+        function actualizarNivel() {
+            // Limpiar canvas2
+            ctx2.clearRect(0, 0, canvas2.width, canvas2.height);
+    
+            // Mostrar el nivel en el canvas2
+            ctx2.font = "20px Arial";
+            ctx2.fillText("Nivel: " + nivel, 5, 320);
+
+            
+        }
+    </script>
+</body>
+</html>
+
